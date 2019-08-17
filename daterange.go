@@ -48,3 +48,15 @@ func (drange DateRange) String() string {
 	}
 	return "unknown range"
 }
+
+func (drange DateRange) getDuration() time.Duration {
+	switch drange {
+	case Seconds:
+		return time.Second
+	case Minute:
+		return time.Minute
+	case Hour:
+		return time.Hour
+	}
+	panic("unknown duration")
+}

@@ -77,6 +77,9 @@ func TestBasicDateBehaviour(t *testing.T) {
 		"dateRange": func(dateRange DateRange) DateRangeCounter {
 			return NewBasicDateCounter(dateRange, NewInMemoryBackend())
 		},
+		"intBacked": func(dateRange DateRange) DateRangeCounter {
+			return NewIntBackedDateRange(NewBasicIntRangeCounter(), dateRange)
+		},
 	}
 	rangeToTests := []DateRange{Seconds, Minute, Hour}
 	for counterName, dateCounterFactory := range counterToTest {
