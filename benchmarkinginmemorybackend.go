@@ -14,7 +14,7 @@ type benchmarkingInMemoryBackend struct {
 	incrementKeyFactor  int
 }
 
-func NewBenchmarkBackend() Backend {
+func NewBenchmarkBackend() *benchmarkingInMemoryBackend {
 	return &benchmarkingInMemoryBackend{
 		store:               map[string]int64{},
 		queryCallFactor:     0,
@@ -24,7 +24,7 @@ func NewBenchmarkBackend() Backend {
 	}
 }
 
-func (b benchmarkingInMemoryBackend) Query(ctx context.Context, keys []string) ([]int64, error) {
+func (b *benchmarkingInMemoryBackend) Query(ctx context.Context, keys []string) ([]int64, error) {
 	b.queryCall++
 	b.queryKeyTouched += len(keys)
 
@@ -41,7 +41,7 @@ func (b benchmarkingInMemoryBackend) Query(ctx context.Context, keys []string) (
 	return results, nil
 }
 
-func (b benchmarkingInMemoryBackend) Increment(ctx context.Context, keys []string, values []int64) error {
+func (b *benchmarkingInMemoryBackend) Increment(ctx context.Context, keys []string, values []int64) error {
 	b.incrementCall++
 	b.incrementKeyTouched += len(keys)
 

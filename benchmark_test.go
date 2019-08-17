@@ -11,102 +11,34 @@ func BenchmarkBasicDateBehaviour(b *testing.B) {
 	baseDate := time.Date(2019, 1, 1, 1, 1, 1, 1, time.Local)
 	tests := []struct {
 		name                   string
-		incrementFactor        int
 		startIncrement         time.Time
 		maxIncrementDateOffset int
-		queryFactor            int
 		startQuery             time.Time
 		maxQueryDateOffset     int
 		maxQueryRange          int
 	}{
 		{
 			name:                   "range 5",
-			incrementFactor:        1,
 			startIncrement:         baseDate,
-			maxIncrementDateOffset: 1000,
-			queryFactor:            1,
+			maxIncrementDateOffset: 100000,
 			startQuery:             baseDate,
-			maxQueryDateOffset:     1000,
-			maxQueryRange:          5,
-		},
-		{
-			name:                   "range 5 high increment",
-			incrementFactor:        10,
-			startIncrement:         baseDate,
-			maxIncrementDateOffset: 1000,
-			queryFactor:            1,
-			startQuery:             baseDate,
-			maxQueryDateOffset:     1000,
-			maxQueryRange:          5,
-		},
-		{
-			name:                   "range 5 high query",
-			incrementFactor:        1,
-			startIncrement:         baseDate,
-			maxIncrementDateOffset: 1000,
-			queryFactor:            10,
-			startQuery:             baseDate,
-			maxQueryDateOffset:     1000,
+			maxQueryDateOffset:     100000,
 			maxQueryRange:          5,
 		},
 		{
 			name:                   "range 20",
-			incrementFactor:        1,
 			startIncrement:         baseDate,
-			maxIncrementDateOffset: 1000,
-			queryFactor:            1,
+			maxIncrementDateOffset: 100000,
 			startQuery:             baseDate,
-			maxQueryDateOffset:     1000,
-			maxQueryRange:          20,
-		},
-		{
-			name:                   "range 20 high increment",
-			incrementFactor:        10,
-			startIncrement:         baseDate,
-			maxIncrementDateOffset: 1000,
-			queryFactor:            1,
-			startQuery:             baseDate,
-			maxQueryDateOffset:     1000,
-			maxQueryRange:          20,
-		},
-		{
-			name:                   "range 20 high query",
-			incrementFactor:        1,
-			startIncrement:         baseDate,
-			maxIncrementDateOffset: 1000,
-			queryFactor:            10,
-			startQuery:             baseDate,
-			maxQueryDateOffset:     1000,
+			maxQueryDateOffset:     100000,
 			maxQueryRange:          20,
 		},
 		{
 			name:                   "range 100",
-			incrementFactor:        1,
 			startIncrement:         baseDate,
-			maxIncrementDateOffset: 1000,
-			queryFactor:            1,
+			maxIncrementDateOffset: 100000,
 			startQuery:             baseDate,
-			maxQueryDateOffset:     1000,
-			maxQueryRange:          100,
-		},
-		{
-			name:                   "range 100 high increment",
-			incrementFactor:        10,
-			startIncrement:         baseDate,
-			maxIncrementDateOffset: 1000,
-			queryFactor:            1,
-			startQuery:             baseDate,
-			maxQueryDateOffset:     1000,
-			maxQueryRange:          100,
-		},
-		{
-			name:                   "range 100 high query",
-			incrementFactor:        1,
-			startIncrement:         baseDate,
-			maxIncrementDateOffset: 1000,
-			queryFactor:            10,
-			startQuery:             baseDate,
-			maxQueryDateOffset:     1000,
+			maxQueryDateOffset:     100000,
 			maxQueryRange:          100,
 		},
 	}
@@ -148,6 +80,14 @@ func BenchmarkBasicDateBehaviour(b *testing.B) {
 				return NewIntBackedDateRange(NewRangeTreeIntCounter(backend, 4, 4), dateRange)
 			},
 		}, {
+			"intBacked-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewBasicIntRangeCounter(backend), dateRange, Seconds), dateRange)
+			},
+		}, {
+			"intRangeTreeBacked-8-4-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 12, 2), dateRange, Seconds), dateRange)
+			},
+		}, {
 			"intRangeTreeBacked-12-2-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
 				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 12, 2), dateRange, Seconds), dateRange)
 			},
@@ -157,28 +97,30 @@ func BenchmarkBasicDateBehaviour(b *testing.B) {
 		b.Run(d.name, func(b *testing.B) {
 			for _, counter := range counterToTest {
 				b.Run("counter "+counter.name, func(b *testing.B) {
-					rangeToTest := Hour
-					dateCounter := counter.factory(rangeToTest, NewBenchmarkBackend())
+					rangeToTest := Minute
+					backend := NewBenchmarkBackend()
+					dateCounter := counter.factory(rangeToTest, backend)
 					rand.Seed(0)
 					ctx := context.Background()
 
 					for i := 0; i < b.N; i++ {
-						r := rand.Int() % (d.incrementFactor + d.queryFactor)
-						if r < d.incrementFactor {
-							offset := rand.Int() % d.maxIncrementDateOffset
-							err := dateCounter.Increment(ctx, rangeToTest.incrementDateForce(offset, baseDate), 1)
-							if err != nil {
-								b.Fail()
-							}
-						} else {
-							startOffset := rand.Int() % d.maxQueryDateOffset
-							bucket := rand.Int() % d.maxQueryRange
-							_, err := dateCounter.QuerySum(ctx, rangeToTest.incrementDateForce(startOffset, baseDate), bucket)
-							if err != nil {
-								b.Fail()
-							}
+						offset := rand.Int() % d.maxIncrementDateOffset
+						err := dateCounter.Increment(ctx, rangeToTest.incrementDateForce(offset, baseDate), 1)
+						if err != nil {
+							b.Fail()
 						}
 					}
+					b.ReportMetric(float64(backend.incrementKeyTouched)/float64(b.N), "incrementKeyTouched")
+
+					for i := 0; i < b.N; i++ {
+						startOffset := rand.Int() % d.maxQueryDateOffset
+						bucket := rand.Int() % d.maxQueryRange
+						_, err := dateCounter.QuerySum(ctx, rangeToTest.incrementDateForce(startOffset, baseDate), bucket)
+						if err != nil {
+							b.Fail()
+						}
+					}
+					b.ReportMetric(float64(backend.queryKeyTouched)/float64(b.N), "queryKeyTouched")
 				})
 			}
 		})
