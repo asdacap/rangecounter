@@ -87,7 +87,7 @@ func TestDateRangeBehaviour(t *testing.T) {
 			return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(NewInMemoryBackend(), 16, 3), dateRange, Seconds), dateRange)
 		},
 	}
-	rangeToTests := []DateRange{Seconds, Minute, Hour}
+	rangeToTests := []DateRange{Hour}
 	for counterName, dateCounterFactory := range counterToTest {
 		t.Run("counter "+counterName, func(t *testing.T) {
 			for _, rangeToTest := range rangeToTests {

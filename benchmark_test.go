@@ -49,78 +49,115 @@ func BenchmarkBasicDateBehaviour(b *testing.B) {
 	}{
 		{
 			"intBacked", func(dateRange DateRange, backend Backend) DateRangeCounter {
-				return NewIntBackedDateRange(NewBasicIntRangeCounter(backend), dateRange)
+			return NewIntBackedDateRange(NewBasicIntRangeCounter(backend), dateRange)
+		},
+		}, {
+			"dateRange", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewBasicDateCounter(dateRange, backend)
 			},
 		}, {
-			"intRangeTreeBacked-2", func(dateRange DateRange, backend Backend) DateRangeCounter {
+			"tree-1", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewRangeTreeIntCounter(backend, 1, 1), dateRange)
+			},
+		}, {
+			"tree-2", func(dateRange DateRange, backend Backend) DateRangeCounter {
 				return NewIntBackedDateRange(NewRangeTreeIntCounter(backend, 2, 1), dateRange)
 			},
 		}, {
-			"intRangeTreeBacked-2-2", func(dateRange DateRange, backend Backend) DateRangeCounter {
+			"tree-2-2", func(dateRange DateRange, backend Backend) DateRangeCounter {
 				return NewIntBackedDateRange(NewRangeTreeIntCounter(backend, 2, 2), dateRange)
 			},
 		}, {
-			"intRangeTreeBacked-4", func(dateRange DateRange, backend Backend) DateRangeCounter {
+			"tree-4", func(dateRange DateRange, backend Backend) DateRangeCounter {
 				return NewIntBackedDateRange(NewRangeTreeIntCounter(backend, 4, 1), dateRange)
 			},
 		}, {
-			"intRangeTreeBacked-8", func(dateRange DateRange, backend Backend) DateRangeCounter {
+			"tree-8", func(dateRange DateRange, backend Backend) DateRangeCounter {
 				return NewIntBackedDateRange(NewRangeTreeIntCounter(backend, 8, 1), dateRange)
 			},
 		}, {
-			"intRangeTreeBacked-16", func(dateRange DateRange, backend Backend) DateRangeCounter {
+			"tree-16", func(dateRange DateRange, backend Backend) DateRangeCounter {
 				return NewIntBackedDateRange(NewRangeTreeIntCounter(backend, 16, 1), dateRange)
 			},
 		}, {
-			"intRangeTreeBacked-8-2", func(dateRange DateRange, backend Backend) DateRangeCounter {
+			"tree-8-2", func(dateRange DateRange, backend Backend) DateRangeCounter {
 				return NewIntBackedDateRange(NewRangeTreeIntCounter(backend, 8, 2), dateRange)
 			},
 		}, {
-			"intRangeTreeBacked-4-4", func(dateRange DateRange, backend Backend) DateRangeCounter {
+			"tree-4-4", func(dateRange DateRange, backend Backend) DateRangeCounter {
 				return NewIntBackedDateRange(NewRangeTreeIntCounter(backend, 4, 4), dateRange)
 			},
 		}, {
-			"intBacked-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+			"tree-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
 				return NewIntBackedDateRange(NewIntRangeTranslator(NewBasicIntRangeCounter(backend), dateRange, Seconds), dateRange)
 			},
 		}, {
-			"intRangeTreeBacked-8-4-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
-				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 12, 2), dateRange, Seconds), dateRange)
+			"tree-8-1-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 8, 1), dateRange, Seconds), dateRange)
 			},
 		}, {
-			"intRangeTreeBacked-12-2-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
-				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 12, 2), dateRange, Seconds), dateRange)
+			"tree-16-1-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 16, 1), dateRange, Seconds), dateRange)
+			},
+		}, {
+			"tree-32-1-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 32, 1), dateRange, Seconds), dateRange)
+			},
+		}, {
+			"tree-8-2-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 8, 2), dateRange, Seconds), dateRange)
+			},
+		}, {
+			"tree-16-2-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 16, 2), dateRange, Seconds), dateRange)
+			},
+		}, {
+			"tree-4-4-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 4, 4), dateRange, Seconds), dateRange)
+			},
+		}, {
+			"tree-8-4-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 8, 4), dateRange, Seconds), dateRange)
+			},
+		}, {
+			"tree-4-8-to-second", func(dateRange DateRange, backend Backend) DateRangeCounter {
+				return NewIntBackedDateRange(NewIntRangeTranslator(NewRangeTreeIntCounter(backend, 4, 8), dateRange, Seconds), dateRange)
 			},
 		},
 	}
 	for _, d := range tests {
 		b.Run(d.name, func(b *testing.B) {
 			for _, counter := range counterToTest {
-				b.Run("counter "+counter.name, func(b *testing.B) {
+				b.Run(counter.name, func(b *testing.B) {
 					rangeToTest := Minute
-					backend := NewBenchmarkBackend()
-					dateCounter := counter.factory(rangeToTest, backend)
-					rand.Seed(0)
-					ctx := context.Background()
+					round := 10000
 
-					for i := 0; i < b.N; i++ {
-						offset := rand.Int() % d.maxIncrementDateOffset
-						err := dateCounter.Increment(ctx, rangeToTest.incrementDateForce(offset, baseDate), 1)
-						if err != nil {
-							b.Fail()
-						}
-					}
-					b.ReportMetric(float64(backend.incrementKeyTouched)/float64(b.N), "incrementKeyTouched")
+					for bi := 0; bi < b.N; bi++ {
+						backend := NewBenchmarkBackend()
+						dateCounter := counter.factory(rangeToTest, backend)
+						rand.Seed(0)
+						ctx := context.Background()
 
-					for i := 0; i < b.N; i++ {
-						startOffset := rand.Int() % d.maxQueryDateOffset
-						bucket := rand.Int() % d.maxQueryRange
-						_, err := dateCounter.QuerySum(ctx, rangeToTest.incrementDateForce(startOffset, baseDate), bucket)
-						if err != nil {
-							b.Fail()
+						for i := 0; i < round; i++ {
+							offset := rand.Int() % d.maxIncrementDateOffset
+							err := dateCounter.Increment(ctx, rangeToTest.incrementDateForce(offset, baseDate), 1)
+							if err != nil {
+								b.Fail()
+							}
 						}
+						b.ReportMetric(float64(backend.incrementKeyTouched)/float64(round), "incrementKeyTouched")
+
+						for i := 0; i < round; i++ {
+							startOffset := rand.Int() % d.maxQueryDateOffset
+							bucket := (rand.Int() % d.maxQueryRange)+1
+							_, err := dateCounter.QuerySum(ctx, rangeToTest.incrementDateForce(startOffset, baseDate), bucket)
+							if err != nil {
+								b.Fail()
+							}
+						}
+						b.ReportMetric(float64(backend.queryKeyTouched)/float64(round), "queryKeyTouched")
+						b.ReportMetric(float64(len(backend.store))/float64(round), "keyUsed")
 					}
-					b.ReportMetric(float64(backend.queryKeyTouched)/float64(b.N), "queryKeyTouched")
 				})
 			}
 		})

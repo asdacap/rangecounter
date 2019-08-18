@@ -14,16 +14,16 @@ type rangeTreeIntCounter struct {
 }
 
 func (rtic *rangeTreeIntCounter) determineSumKeys(ctx context.Context, from, to int64) ([]string) {
-	frompath := rtic.getTreePath(from)
+	frompath := rtic.getTreePath(uint64(from))
 	frompathKeys := rtic.getTreePathKeys(frompath)
 
 	if from == to {
 		return []string{frompathKeys[len(frompathKeys)-1]}
 	}
 
-	topath := rtic.getTreePath(to)
+	topath := rtic.getTreePath(uint64(to))
 	topathKeys := rtic.getTreePathKeys(topath)
-	maxPath := int64(1 << rtic.bitLength)
+	maxPath := uint64(1 << rtic.bitLength)
 
 	nonCommonIdx := 0
 	for i := range frompath {
@@ -63,7 +63,7 @@ func (rtic *rangeTreeIntCounter) determineSumKeys(ctx context.Context, from, to 
 			parentKey = topathKeys[i-1]
 		}
 
-		for beforePath := int64(0); beforePath < topath[i]; beforePath++ {
+		for beforePath := uint64(0); beforePath < topath[i]; beforePath++ {
 			toSubtreeKey = append(toSubtreeKey, rtic.appendKey(parentKey, beforePath))
 		}
 	}
@@ -92,7 +92,7 @@ func (rtic *rangeTreeIntCounter) QuerySum(ctx context.Context, from, to int64) (
 }
 
 func (rtic *rangeTreeIntCounter) Increment(ctx context.Context, at int64, by int64) error {
-	treepath := rtic.getTreePath(at)
+	treepath := rtic.getTreePath(uint64(at))
 	treepathKeys := rtic.getTreePathKeys(treepath)
 
 	increments := []int64{}
@@ -103,24 +103,24 @@ func (rtic *rangeTreeIntCounter) Increment(ctx context.Context, at int64, by int
 	return rtic.backend.Increment(ctx, treepathKeys, increments)
 }
 
-func (rtic *rangeTreeIntCounter) getTreePathKeys(paths []int64) []string {
+func (rtic *rangeTreeIntCounter) getTreePathKeys(paths []uint64) []string {
 	builder := strings.Builder{}
 	keys := []string{}
 	for _, path := range paths {
 		builder.WriteRune(':')
-		builder.WriteString(strconv.FormatInt(path, 10))
+		builder.WriteString(strconv.FormatUint(path, 10))
 		keys = append(keys, builder.String())
 	}
 	return keys
 }
 
-func (rtic *rangeTreeIntCounter) appendKey(parent string, idx int64) string {
+func (rtic *rangeTreeIntCounter) appendKey(parent string, idx uint64) string {
 	return parent + ":" + fmt.Sprint(idx)
 }
 
-func (rtic *rangeTreeIntCounter) getTreePath(idx int64) []int64 {
-	lowerMask := int64((1 << (rtic.bitLength)) - 1)
-	treePath := []int64{}
+func (rtic *rangeTreeIntCounter) getTreePath(idx uint64) []uint64 {
+	lowerMask := uint64((1 << (rtic.bitLength)) - 1)
+	treePath := []uint64{}
 
 	for i := 0; i < (rtic.heightLimit)-1; i++ {
 		cPath := idx & lowerMask
@@ -130,7 +130,7 @@ func (rtic *rangeTreeIntCounter) getTreePath(idx int64) []int64 {
 
 	treePath = append(treePath, idx)
 
-	reversed := make([]int64, len(treePath))
+	reversed := make([]uint64, len(treePath))
 	for i := 0;i<len(treePath);i++ {
 		reversed[i] = treePath[len(treePath)-i-1]
 	}

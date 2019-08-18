@@ -4,13 +4,13 @@ import "context"
 
 type benchmarkingInMemoryBackend struct {
 	store               map[string]int64
-	queryCall           int
+	queryCall           int64
 	queryCallFactor     int
-	queryKeyTouched     int
+	queryKeyTouched     int64
 	queryKeyFactor      int
-	incrementCall       int
+	incrementCall       int64
 	incrementCallFactor int
-	incrementKeyTouched int
+	incrementKeyTouched int64
 	incrementKeyFactor  int
 }
 
@@ -26,7 +26,7 @@ func NewBenchmarkBackend() *benchmarkingInMemoryBackend {
 
 func (b *benchmarkingInMemoryBackend) Query(ctx context.Context, keys []string) ([]int64, error) {
 	b.queryCall++
-	b.queryKeyTouched += len(keys)
+	b.queryKeyTouched += int64(len(keys))
 
 	for i := 0; i < b.queryCallFactor; i++ {
 		load()
@@ -43,7 +43,7 @@ func (b *benchmarkingInMemoryBackend) Query(ctx context.Context, keys []string) 
 
 func (b *benchmarkingInMemoryBackend) Increment(ctx context.Context, keys []string, values []int64) error {
 	b.incrementCall++
-	b.incrementKeyTouched += len(keys)
+	b.incrementKeyTouched += int64(len(keys))
 
 	for i := 0; i < b.incrementCallFactor; i++ {
 		load()
